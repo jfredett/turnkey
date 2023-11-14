@@ -16,6 +16,7 @@ in {
     "turnkey-${tokenName}-token" = {
       description = "Emerald City Turnkey Token: ${tokenName}";
       after = [ "turnkey.target" ];
+      requires = [ "turnkey.target" ];
       wantedBy = [ "turnkey.target" ];
       serviceConfig = {
         Type = "simple";

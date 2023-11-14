@@ -1,8 +1,8 @@
 { pkgs, rootTokenPath, mkDescription, roleIDPath, secretIDPath, ... }: let 
 in {
   mkService = {
-    turnkey-renew = {
-      after = [ "multi-user.target" ];
+    turnkey-root = {
+      after = [ "turnkey.target" ];
       path = [ pkgs.vault-bin pkgs.util-linux ];
       environment.VAULT_ADDR = "https://vault.emerald.city:8200";
       serviceConfig = {
@@ -20,7 +20,7 @@ in {
     };
   };
   mkTimer = {
-    turnkey-renewal = {
+    turnkey-root-renew = {
       enable = true;
       wantedBy = [ "turnkey.target" ];
       after = [ "turnkey-unlock.service" ];
@@ -32,7 +32,7 @@ in {
   mkUnlockOneshot = {
       # Responsible for turning the role/secret -> root token and starting
       # all the other services by isolating to the target
-      turnkey-unlock = {
+      turnkey = {
         after = [ "multi-user.target" ];
         path = [ pkgs.vault-bin pkgs.util-linux ];
         environment.VAULT_ADDR = "https://vault.emerald.city:8200";

@@ -13,19 +13,20 @@ in {
     token = "$(cat ${tokenPath})";
 
     mkActualSecret = field: linkPath: ''
-      vault kv get -field=${field} ${mount}/${field} > /run/keys/${mount}/${field}.secret
-      ln -s /run/keys/${mount}/${field}.secret ${linkPath}
-      chown ${user}:${group} /run/keys/${mount}/${field}.secret
-      chmod 0600 /run/keys/${mount}/${field}.secret
+      vault kv get -field=${field} ${mount}/${secretName} > /run/keys/${mount}/${secretName}/${field}.secret
+      rm -f ${linkPath}
+      ln -s /run/keys/${mount}/${secretName}/${field}.secret ${linkPath}
+      chmod 0600 /run/keys/${mount}/${secretName}/${field}.secret
+      chown ${user}:${group} /run/keys/${mount}/${secretName}/${field}.secret
     '';
     getSecretFields = concatLines (attrValues (mapAttrs mkActualSecret cfg.fields));
   in {
     "turnkey-${tokenName}-${secretName}-secret" = {
       enable = true;
       description = "Emerald City Turnkey Secret: ${secretName}";
-      after = [ "turnkey.target" ];
-      wantedBy = [ "turnkey.target" ];
-      requires = [ "turnkey.target" ];
+      after = [ "turnkey-${tokenName}-token.service" ];
+      wantedBy = [ "turnkey-${tokenName}-token.service" ];
+      requires = [ "turnkey-${tokenName}-token.service" ];
       path = [ pkgs.vault-bin pkgs.util-linux pkgs.jq ];
       environment.VAULT_ADDR = "https://vault.emerald.city:8200";
       serviceConfig = {
@@ -33,7 +34,10 @@ in {
         Group = "root";
         Type = "simple";
         RemainAfterExit = "yes";
-        ExecStart = pkgs.writeShellScript "${secretName}-acquire.sh" ''
+        ExecStop = pkgs.writeShellScript "turnkey-${tokenName}-${secretName}-acquire.sh" ''
+          rm -r ${mountPath}/${secretName}
+        '';
+        ExecStart = pkgs.writeShellScript "turnkey-${tokenName}-${secretName}-acquire.sh" ''
           flock -s ${tokenPath} -c "{
             vault login token=${token}
 

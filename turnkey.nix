@@ -71,7 +71,7 @@ in {
         tokenServices = map (token.mkServices config.turnkey.tokens) tokenNames;
         tokenTimers   = map token.mkTimers tokenNames;
 
-        secretServices = map (token: map (secret.mkServices token) (secretNamesFor token)) tokenNames;
+        secretServices = concatMap (token: map (secret.mkServices token) (secretNamesFor token)) tokenNames;
         secretTimers   = []; # map (token: map (secret token).mkTimers (secretNamesFor token)) tokenNames;
       in { 
         systemd = {
@@ -82,7 +82,7 @@ in {
             unitConfig.AllowIsolate = true;
           };
 
-          services = mkMerge (tokenServices ++ (builtins.elemAt secretServices 0)
+          services = mkMerge (tokenServices ++ secretServices
                           ++ [ root.mkService root.mkUnlockOneshot ]);
 
           timers =  mkMerge ( tokenTimers ++ secretTimers 
